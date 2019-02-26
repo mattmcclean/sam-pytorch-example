@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    sam-app
+
+    Sample SAM Template for sam-app
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+    Function:
+        Timeout: 30
+
+Resources:
+
+    PyTorchFunction:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            CodeUri: pytorch/
+            Handler: app.lambda_handler
+            Runtime: python3.6
+            MemorySize: 1024
+            Environment:
+                Variables:
+                    MODEL_BUCKET: sagemaker-eu-west-1-934676248949
+                    MODEL_PREFIX: sagemaker/fastai-pets-jit-model-2019-02-26-15-32-56-789
+            Policies:
+                - S3ReadPolicy:
+                    BucketName: "sagemaker-eu-west-1-934676248949"
+            Layers:
+                - arn:aws:lambda:eu-west-1:934676248949:layer:pytorch-v1-py36:5
+            Events:
+                PyTorch:
+                    Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+                    Properties:
+                        Path: /invocations
+                        Method: post
+                        
+Outputs:
+
+    # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+    # Find out more about other implicit resources you can reference within SAM
+    # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+    PyTorchApi:
+      Description: "API Gateway endpoint URL for Prod stage for PyTorch function"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/invocations/"
+
+    PyTorchFunction:
+      Description: "PyTorch Lambda Function ARN"
+      Value: !GetAtt PyTorchFunction.Arn
+
+    PyTorchFunctionIamRole:
+      Description: "Implicit IAM Role created for PyTorch function"
+      Value: !GetAtt PyTorchFunctionRole.Arn                        
