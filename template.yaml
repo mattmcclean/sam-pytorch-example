@@ -5,6 +5,20 @@ Description: >
 
     Sample SAM Template for sam-app
 
+Parameters: 
+  BucketName: 
+    Type: String
+    Default: somebucket
+    Description: Enter the S3 bucket name of your PyTorch model artefacts.
+  BucketPrefix: 
+    Type: String
+    Default: someprefix
+    Description: Enter the S3 bucket prefix of your PyTorch model artefacts.
+  LambdaLayerArn:
+    Type: String
+    Default: somearn
+    Description: Enter the ARN of the AWS Lambda Layer for the PyTorch packages.
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
     Function:
@@ -21,13 +35,13 @@ Resources:
             MemorySize: 1024
             Environment:
                 Variables:
-                    MODEL_BUCKET: sagemaker-eu-west-1-934676248949
-                    MODEL_PREFIX: sagemaker/fastai-pets-jit-model-2019-02-26-15-32-56-789
+                    MODEL_BUCKET: !Ref BucketName
+                    MODEL_PREFIX: !Ref BucketPrefix
             Policies:
                 - S3ReadPolicy:
                     BucketName: "sagemaker-eu-west-1-934676248949"
             Layers:
-                - arn:aws:lambda:eu-west-1:934676248949:layer:pytorch-v1-py36:6
+                - !Ref LambdaLayerArn
             Events:
                 PyTorch:
                     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api

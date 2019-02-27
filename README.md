@@ -1,17 +1,21 @@
-# sam-app
+# PyTorch model deployment on AWS Lambda
 
-This is a sample template for sam-app - Below is a brief explanation of what we have generated for you:
+This is a sample [SAM](https://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html) application to deploy a PyTorch model on AWS Lambda.
 
 ```bash
 .
-├── README.md                   <-- This instructions file
-├── event.json                  <-- API Gateway Proxy Integration event payload
-├── hello_world                 <-- Source code for a lambda function
+├── README.md                       <-- This instructions file
+├── event.json                      <-- API Gateway Proxy Integration event payload
+├── layer                           <-- Scripts for setting up the Lambda Layer for PyTorch
+│   ├── python                      
+│   ├───── unzip_requirements.py    <-- Python script to unzip package requirents when Lambda execution context created
+│   ├── build_layer_zipfile.sh      <-- Shell script to create the Layer packages as zipfile and upload to S3
+├── pytorch                         <-- Source code for a lambda function
 │   ├── __init__.py
-│   ├── app.py                  <-- Lambda function code
-│   ├── requirements.txt        <-- Lambda function code
-├── template.yaml               <-- SAM Template
-└── tests                       <-- Unit tests
+│   ├── app.py                      <-- Lambda function code
+│   ├── requirements.txt            <-- Python requirements describing package dependencies to be included in Lambda layer
+├── template.yaml                   <-- SAM Template
+└── tests                           <-- Unit tests
     └── unit
         ├── __init__.py
         └── test_handler.py
@@ -25,12 +29,24 @@ This is a sample template for sam-app - Below is a brief explanation of what we 
 
 ## Setup process
 
+### Create Lambda Layer
+
+The project uses [Lambda layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html) for deploying the PyTorch libraries. **Lambda Layers** allow you to bundle dependencies without needing to include them in your application bundle.
+
+The project contains a couple of scripts to do this.
+
+Firstly, we need a `S3 bucket` where we can upload our Lambda functions and layers packaged as ZIP files before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
+
+```bash
+aws s3 mb s3://BUCKET_NAME
+```
+
 ### Local development
 
 **Invoking function locally using a local sample payload**
 
 ```bash
-sam local invoke HelloWorldFunction --event event.json
+sam local invoke PyTorchFunction --event event.json
 ```
 
 **Invoking function locally through local API Gateway**
@@ -46,7 +62,7 @@ If the previous command ran successfully you should now be able to hit the follo
 ```yaml
 ...
 Events:
-    HelloWorld:
+    PyTorch:
         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
         Properties:
             Path: /hello
@@ -59,17 +75,11 @@ AWS Lambda Python runtime requires a flat folder with all dependencies including
 
 ```yaml
 ...
-    HelloWorldFunction:
+    PyTorchFunction:
         Type: AWS::Serverless::Function
         Properties:
-            CodeUri: hello_world/
+            CodeUri: pytorch/
             ...
-```
-
-Firstly, we need a `S3 bucket` where we can upload our Lambda functions packaged as ZIP before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
-
-```bash
-aws s3 mb s3://BUCKET_NAME
 ```
 
 Next, run the following command to package our Lambda function to S3:
@@ -96,7 +106,7 @@ After deployment is complete you can run the following command to retrieve the A
 ```bash
 aws cloudformation describe-stacks \
     --stack-name sam-app \
-    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
+    --query 'Stacks[].Outputs[?OutputKey==`PyTorchApi`]' \
     --output table
 ``` 
 
@@ -107,7 +117,7 @@ To simplify troubleshooting, SAM CLI has a command called sam logs. sam logs let
 `NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
 
 ```bash
-sam logs -n HelloWorldFunction --stack-name sam-app --tail
+sam logs -n PyTorchFunction --stack-name sam-app --tail
 ```
 
 You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
@@ -138,7 +148,7 @@ Here are a few things you can try to get more acquainted with building serverles
 
 * Uncomment lines on `app.py`
 * Build the project with ``sam build --use-container``
-* Invoke with ``sam local invoke HelloWorldFunction --event event.json``
+* Invoke with ``sam local invoke PyTorchFunction --event event.json``
 * Update tests
 
 ### Create an additional API resource
@@ -179,7 +189,7 @@ All commands used throughout this document
 sam local generate-event apigateway aws-proxy > event.json
 
 # Invoke function locally with event.json as an input
-sam local invoke HelloWorldFunction --event event.json
+sam local invoke PyTorchFunction --event event.json
 
 # Run API Gateway locally
 sam local start-api
@@ -201,10 +211,10 @@ sam deploy \
 # Describe Output section of CloudFormation stack previously created
 aws cloudformation describe-stacks \
     --stack-name sam-app \
-    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
+    --query 'Stacks[].Outputs[?OutputKey==`PyTorchApi`]' \
     --output table
 
 # Tail Lambda function Logs using Logical name defined in SAM Template
-sam logs -n HelloWorldFunction --stack-name sam-app --tail
+sam logs -n PyTorchFunction --stack-name sam-app --tail
 ```
 
