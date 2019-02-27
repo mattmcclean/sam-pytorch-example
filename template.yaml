@@ -27,7 +27,7 @@ Resources:
                 - S3ReadPolicy:
                     BucketName: "sagemaker-eu-west-1-934676248949"
             Layers:
-                - arn:aws:lambda:eu-west-1:934676248949:layer:pytorch-v1-py36:5
+                - arn:aws:lambda:eu-west-1:934676248949:layer:pytorch-v1-py36:6
             Events:
                 PyTorch:
                     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api

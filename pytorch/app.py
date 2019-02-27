@@ -1,3 +1,5 @@
+# this import statement is needed if you want to use the AWS Lambda Layer called "pytorch-v1-py36"
+# it unzips all of the pytorch & dependency packages when the script is loaded to avoid the 250 MB unpacked limit in AWS Lambda
 try:
     import unzip_requirements
 except ImportError:
@@ -13,28 +15,30 @@ import logging
 
 import boto3
 import requests
+import PIL
 
-# import torch after package dependencies
 import torch
 import torch.nn.functional as F
-
-import PIL
 from torchvision import models, transforms
 
+# load the S3 client when lambda execution context is created
 s3 = boto3.client('s3')
 
+# classes for the image classification
 classes = []
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# get bucket name from ENV variable
 MODEL_BUCKET=os.environ.get('MODEL_BUCKET')
 logger.info(f'Model Bucket is {MODEL_BUCKET}')
 
+# get bucket prefix from ENV variable
 MODEL_PREFIX=os.environ.get('MODEL_PREFIX')
 logger.info(f'Model Prefix is {MODEL_PREFIX}')
 
-# processing pipeline
+# processing pipeline to resize, normalize and create tensor object
 preprocess = transforms.Compose([
     transforms.Resize(256),
     transforms.CenterCrop(224),
@@ -45,8 +49,15 @@ preprocess = transforms.Compose([
     )
 ])
 
-# loads the PyTorch model from S3
 def load_model():
+    """Loads the PyTorch model into memory from a file on S3.
+
+    Returns
+    ------
+    Vision model: Module
+        Returns the vision PyTorch model to use for inference.
+    
+    """      
     global classes
     logger.info('Loading model from S3')
     model_dir = '/tmp/model'
@@ -70,11 +81,23 @@ def load_model():
     model = torch.jit.load(model_path, map_location=torch.device('cpu'))
     return model.eval()
 
-# load the model   
+# load the model when lambda execution context is created
 model = load_model()
 
-# the method which passes the object through the model
 def predict(input_object, model):
+    """Predicts the class from an input image.
+
+    Parameters
+    ----------
+    input_object: Tensor, required
+        The tensor object containing the image pixels reshaped and normalized.
+
+    Returns
+    ------
+    Response object: dict
+        Returns the predicted class and confidence score.
+    
+    """        
     logger.info("Calling prediction on model")
     start_time = time.time()
     predict_values = model(input_object)
@@ -89,8 +112,19 @@ def predict(input_object, model):
     response['confidence'] = conf_score.item()
     return response
     
-# the method that takes the URL from the request body, downloads the image and creates a Tensor object
 def input_fn(request_body):
+    """Pre-processes the input data from JSON to PyTorch Tensor.
+
+    Parameters
+    ----------
+    request_body: dict, required
+        The request body submitted by the client. Expect an entry 'url' containing a URL of an image to classify.
+
+    Returns
+    ------
+    PyTorch Tensor object: Tensor
+    
+    """    
     logger.info("Getting input URL to a image Tensor object")
     if isinstance(request_body, str):
         request_body = json.loads(request_body)
@@ -101,7 +135,7 @@ def input_fn(request_body):
     return img_tensor
     
 def lambda_handler(event, context):
-    """Sample pure Lambda function
+    """Lambda handler function
 
     Parameters
     ----------
