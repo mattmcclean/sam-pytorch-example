@@ -248,20 +248,20 @@ The project defaults to using a public Lambda Layer ARN `arn:aws:lambda:eu-west-
 
 AWS Lambda has a limit of 250 MB for the deployment package size including lamba layers. PyTorch plus its dependencies is more than this so we need to implement a trick to get around this limit. We will create a zipfile called `.requirements.zip` with all the PyTorch and associated packages. We will then add this zipfile to the Lambda Layer zipfile along with a python script called `unzip_requirements.py`. The python script will extract the zipfile `.requirements.zip` to the `/tmp` when the Lambda execution context is created. 
 
-1. Goto the directory named `layer` and run the script named `create_layer_zipfile.sh`. This will launch the command `sam build --use-container` to download the packages defined in the `requirements.txt` file. The script will remove unncessary files and directories and then create the zipfile `.requirements.zip` then bundle this zipfile with the python script `unzip_requirements.py` to the zipfile `pytorch-1.0.1-lambda-layer.zip`.
+- Goto the directory named `layer` and run the script named `create_layer_zipfile.sh`. This will launch the command `sam build --use-container` to download the packages defined in the `requirements.txt` file. The script will remove unncessary files and directories and then create the zipfile `.requirements.zip` then bundle this zipfile with the python script `unzip_requirements.py` to the zipfile `pytorch-1.0.1-lambda-layer.zip`.
 
 ```bash
 cd layer
 ./create_layer_zipfile.sh
 ```
 
-1. Upload the Lambda Layer zipfile to one of your S3 buckets. Take note of the S3 URL as it will be used when creating the Lambda Layer.
+- Upload the Lambda Layer zipfile to one of your S3 buckets. Take note of the S3 URL as it will be used when creating the Lambda Layer.
 
 ```bash
 aws s3 cp pytorch-1.0.1-lambda-layer.zip s3://REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME/lambda-layers/pytorch-1.0.1-lambda-layer.zip
 ```
 
-1. Now we can create the Lambda Layer version. Execute the following AWS CLI command:
+- Now we can create the Lambda Layer version. Execute the following AWS CLI command:
 
 ```bash
 aws lambda publish-layer-version \
@@ -271,20 +271,22 @@ aws lambda publish-layer-version \
     --compatible-runtimes "python3.6" 
 ```
 
-1. Take note of the value of the response parameter `LayerVersionArn`. 
+- Take note of the value of the response parameter `LayerVersionArn`. 
 
 The following examples show how you can use your own Lambda Layer in both local testing and then deploying to AWS. They will overide the default Lambda Layer in the file `template.yaml`.
 
 **Invoking function locally overriding Lambda Layer default**
 
 ```bash
-sam local invoke PyTorchFunction -n env.json -e event.json --parameter-overrides LambdaLayerArn=REPLACE_WITH_YOUR_LAMBDA_LAYER_ARN
+sam local invoke PyTorchFunction -n env.json -e event.json \
+    --parameter-overrides LambdaLayerArn=REPLACE_WITH_YOUR_LAMBDA_LAYER_ARN
 ```
 
 **Invoking function through local API Gateway overriding Lambda Layer default**
 
 ```bash
-sam local start-api -n env.json --parameter-overrides LambdaLayerArn=REPLACE_WITH_YOUR_LAMBDA_LAYER_ARN
+sam local start-api -n env.json \
+    --parameter-overrides LambdaLayerArn=REPLACE_WITH_YOUR_LAMBDA_LAYER_ARN
 ```
 
 **Deploying the Lambda function overriding Lambda Layer default**
