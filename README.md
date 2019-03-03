@@ -3,6 +3,7 @@
 ## Table of Contents
 
    * [PyTorch model deployment on AWS Lambda](#pytorch-model-deployment-on-aws-lambda)
+      * [Introduction](#introduction)
       * [Requirements](#requirements)
       * [Setup process](#setup-process)
       * [Lambda function request/response API](#lambda-function-requestresponse-api)
@@ -13,6 +14,9 @@
       * [Cleanup](#cleanup)
       * [Advanced concepts](#advanced-concepts)
       * [SAM and AWS CLI commands](#sam-and-aws-cli-commands)
+
+
+## Introduction
 
 This is a sample [SAM](https://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html) application to deploy a PyTorch model on AWS Lambda.
 
