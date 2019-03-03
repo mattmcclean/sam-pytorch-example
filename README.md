@@ -1,5 +1,23 @@
 # PyTorch model deployment on AWS Lambda
 
+## Table of Contents
+
+   * [PyTorch model deployment on AWS Lambda](#pytorch-model-deployment-on-aws-lambda)
+      * [Requirements](#requirements)
+      * [Setup process](#setup-process)
+         * [Create S3 Bucket](#create-s3-bucket)
+         * [Upload your PyTorch model to S3](#upload-your-pytorch-model-to-s3)
+      * [Lambda function request/response API](#lambda-function-requestresponse-api)
+      * [Local development](#local-development)
+      * [Packaging and deployment](#packaging-and-deployment)
+      * [Fetch, tail, and filter Lambda function logs](#fetch-tail-and-filter-lambda-function-logs)
+      * [Testing](#testing)
+      * [Cleanup](#cleanup)
+      * [Advanced concepts](#advanced-concepts)
+         * [Create Lambda Layer for PyTorch packages](#create-lambda-layer-for-pytorch-packages)
+         * [Lambda code format](#lambda-code-format)
+      * [SAM and AWS CLI commands](#sam-and-aws-cli-commands)
+
 This is a sample [SAM](https://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html) application to deploy a PyTorch model on AWS Lambda.
 
 It deploys a computer vision classifier by receving a URL of an image and returns the predicted class with a confidence value.
