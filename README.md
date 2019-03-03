@@ -5,8 +5,6 @@
    * [PyTorch model deployment on AWS Lambda](#pytorch-model-deployment-on-aws-lambda)
       * [Requirements](#requirements)
       * [Setup process](#setup-process)
-         * [Create S3 Bucket](#create-s3-bucket)
-         * [Upload your PyTorch model to S3](#upload-your-pytorch-model-to-s3)
       * [Lambda function request/response API](#lambda-function-requestresponse-api)
       * [Local development](#local-development)
       * [Packaging and deployment](#packaging-and-deployment)
@@ -14,8 +12,6 @@
       * [Testing](#testing)
       * [Cleanup](#cleanup)
       * [Advanced concepts](#advanced-concepts)
-         * [Create Lambda Layer for PyTorch packages](#create-lambda-layer-for-pytorch-packages)
-         * [Lambda code format](#lambda-code-format)
       * [SAM and AWS CLI commands](#sam-and-aws-cli-commands)
 
 This is a sample [SAM](https://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html) application to deploy a PyTorch model on AWS Lambda.
@@ -53,7 +49,7 @@ The file structure of this application is the following:
 
 ## Setup process
 
-### Create S3 Bucket
+**Create S3 Bucket**
 
 First, we need a `S3 bucket` where we can upload our Lambda functions and layers packaged as ZIP files before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
 
@@ -61,7 +57,7 @@ First, we need a `S3 bucket` where we can upload our Lambda functions and layers
 aws s3 mb s3://BUCKET_NAME
 ```
 
-### Upload your PyTorch model to S3
+**Upload your PyTorch model to S3**
 
 The SAM application expects a PyTorch model in [TorchScript](https://pytorch.org/docs/stable/jit.html?highlight=jit#module-torch.jit) format to be saved to S3 along with a classes text file with the output class names.
 
@@ -244,7 +240,7 @@ aws cloudformation delete-stack --stack-name pytorch-sam-app
 
 Have shown how to create a SAM application to do PyTorch model inference. Now you will learn how to create your own Lambda Layer to package the PyTorch dependencies.
 
-### Create Lambda Layer for PyTorch packages
+**Create Lambda Layer for PyTorch packages**
 
 The project uses [Lambda layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html) for deploying the PyTorch libraries. **Lambda Layers** allow you to bundle dependencies without needing to include them in your application bundle.
 
@@ -302,7 +298,7 @@ sam deploy \
 
 ```
 
-### Lambda code format
+**Lambda code format**
 
 At the beginning of the file `pytorch/app.py` you need to include the following code that will unzip the package file containing the python libs. It will extract the package zip file named `.requirements.zip` to the `/tmp` to get around the unzipped Lambda deployment package limit of 250 MB.
 
