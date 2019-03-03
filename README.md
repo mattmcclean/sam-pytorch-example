@@ -1,19 +1,18 @@
-# PyTorch model deployment on AWS Lambda
+# SAM PyTorch model inference application
 
 ## Table of Contents
 
-   * [PyTorch model deployment on AWS Lambda](#pytorch-model-deployment-on-aws-lambda)
-      * [Introduction](#introduction)
-      * [Requirements](#requirements)
-      * [Setup process](#setup-process)
-      * [Lambda function request/response API](#lambda-function-requestresponse-api)
-      * [Local development](#local-development)
-      * [Packaging and deployment](#packaging-and-deployment)
-      * [Fetch, tail, and filter Lambda function logs](#fetch-tail-and-filter-lambda-function-logs)
-      * [Testing](#testing)
-      * [Cleanup](#cleanup)
-      * [Advanced concepts](#advanced-concepts)
-      * [SAM and AWS CLI commands](#sam-and-aws-cli-commands)
+   * [Introduction](#introduction)
+   * [Requirements](#requirements)
+   * [Setup process](#setup-process)
+   * [Function request/response API](#function-requestresponse-api)
+   * [Local development](#local-development)
+   * [Packaging and deployment](#packaging-and-deployment)
+   * [Fetch, tail, and filter Lambda function logs](#fetch-tail-and-filter-lambda-function-logs)
+   * [Testing](#testing)
+   * [Cleanup](#cleanup)
+   * [Advanced concepts](#advanced-concepts)
+   * [SAM and AWS CLI commands](#sam-and-aws-cli-commands)
 
 
 ## Introduction
@@ -89,7 +88,7 @@ s3.meta.client.upload_file('model.tar.gz',
     'REPLACE_THIS_WITH_YOUR_MODEL_S3_OBJECT_KEY')
 ```
 
-## Lambda function request/response API
+## Function request/response API
 
 **Lambda Request Body format**
 
