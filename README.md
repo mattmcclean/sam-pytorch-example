@@ -2,14 +2,44 @@
 
 This is a sample [SAM](https://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html) application to deploy a PyTorch model on AWS Lambda.
 
+It deploys a computer vision classifier by receving a URL of an image and returns the predicted class with a confidence value.
+
+**Lambda Request Body format**
+
+The Lambda function expects a JSON body request object containing the URL of an image to classify.
+
+Example:
+```json
+{
+    "url": "REPLACE_THIS_WITH_AN_IMAGE_URL"
+}
+```
+**Lambda Response format**
+
+The Lambda function will return a JSON object containing the predicted class and confidence score.
+
+Example:
+```json
+{
+    "statusCode": 200,
+    "body": {
+        "class": "english_cocker_spaniel",
+        "confidence": 0.99
+    }
+}
+```
+The file structure of this application is the following:
+
 ```bash
 .
 ├── README.md                       <-- This instructions file
 ├── event.json                      <-- API Gateway Proxy Integration event payload
 ├── layer                           <-- Scripts for setting up the Lambda Layer for PyTorch
-│   ├── python                      
-│   ├───── unzip_requirements.py    <-- Python script to unzip package requirents when Lambda execution context created
-│   ├── build_layer_zipfile.sh      <-- Shell script to create the Layer packages as zipfile and upload to S3
+│   ├── create_code_buckets.sh
+│   ├── create_layer_zipfile.sh
+│   ├── publish_lambda_layers.sh  
+│   └──python                      
+│       └──  unzip_requirements.py     
 ├── pytorch                         <-- Source code for a lambda function
 │   ├── __init__.py
 │   ├── app.py                      <-- Lambda function code
@@ -23,39 +53,89 @@ This is a sample [SAM](https://docs.aws.amazon.com/lambda/latest/dg/deploying-la
 
 ## Requirements
 
-* AWS CLI already configured with Administrator permission
+* [AWS CLI](https://aws.amazon.com/cli/) already configured with Administrator permission
 * [Python 3 installed](https://www.python.org/downloads/)
 * [Docker installed](https://www.docker.com/community-edition)
 
 ## Setup process
 
-### Create Lambda Layer
+### Create S3 Bucket
 
-The project uses [Lambda layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html) for deploying the PyTorch libraries. **Lambda Layers** allow you to bundle dependencies without needing to include them in your application bundle.
-
-The project contains a couple of scripts to do this.
-
-Firstly, we need a `S3 bucket` where we can upload our Lambda functions and layers packaged as ZIP files before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
+First, we need a `S3 bucket` where we can upload our Lambda functions and layers packaged as ZIP files before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
 
 ```bash
 aws s3 mb s3://BUCKET_NAME
 ```
 
+### Upload your PyTorch model to S3
+
+The SAM application expects a PyTorch model in [TorchScript](https://pytorch.org/docs/stable/jit.html?highlight=jit#module-torch.jit) format to be saved to S3 along with a classes text file with the output class names.
+
+An example piece of code to prepare a trained PyTorch model is shown below:
+
+```python
+# save the PyTorch model in TorchScript format
+import torch
+trace_input = torch.ones(1,3,299,299).cuda()
+jit_model = torch.jit.trace(model.float(), trace_input)
+torch.jit.save(jit_model, 'resnet50_jit.pth')
+
+# bundle the model with the classes text file in a tar.gz file
+import tarfile
+with tarfile.open('model.tar.gz', 'w:gz') as f:
+    f.add('resnet50_jit.pth')
+    f.add('classes.txt')
+
+# upload tarfile to S3
+import boto3
+s3 = boto3.resource('s3')
+# replace 'mybucket' with the name of your S3 bucket
+s3.meta.client.upload_file('model.tar.gz', 
+    'REPLACE_THIS_WITH_YOUR_MODEL_S3_BUCKET_NAME', 
+    'REPLACE_THIS_WITH_YOUR_MODEL_S3_OBJECT_KEY')
+```
+
 ### Local development
+
+**Creating test Lambda Environment Variables**
+
+First create a file called `env.json` with the payload similar to the following substituting the values for the S3 Bucket and Key where your PyTorch model has been saved on S3.
+
+```json
+{
+    "PyTorchFunction": {
+      "MODEL_BUCKET": "REPLACE_THIS_WITH_YOUR_MODEL_S3_BUCKET_NAME",  
+      "MODEL_KEY": "REPLACE_THIS_WITH_YOUR_MODEL_S3_OBJECT_KEY"      
+    }
+}
+```
 
 **Invoking function locally using a local sample payload**
 
+Edit the file named `event.json` and enter a value for the JSON value `url` to the image you want to classify.
+
+Call the following sam command to test the function locally.
+
 ```bash
-sam local invoke PyTorchFunction --event event.json
+sam local invoke PyTorchFunction -n env.json -e event.json
 ```
 
 **Invoking function locally through local API Gateway**
 
 ```bash
-sam local start-api
+sam local start-api -n env.json
 ```
 
-If the previous command ran successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/hello`
+If the previous command ran successfully you should now be able to send a post request to the local endpoint.
+
+An example is the following:
+
+```bash
+curl -d "{\"url\":\"REPLACE_THIS_WITH_AN_IMAGE_URL\"}" \
+    -H "Content-Type: application/json" \
+    -X POST http://localhost:3000/invocations
+```
+
 
 **SAM CLI** is used to emulate both Lambda and API Gateway locally and uses our `template.yaml` to understand how to bootstrap this environment (runtime, where the source code is, etc.) - The following excerpt is what the CLI will read in order to initialize an API and its routes:
 
@@ -65,8 +145,8 @@ Events:
     PyTorch:
         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
         Properties:
-            Path: /hello
-            Method: get
+            Path: /invocations
+            Method: post
 ```
 
 ## Packaging and deployment
@@ -95,7 +175,7 @@ Next, the following command will create a Cloudformation Stack and deploy your S
 ```bash
 sam deploy \
     --template-file packaged.yaml \
-    --stack-name sam-app \
+    --stack-name pytorch-sam-app \
     --capabilities CAPABILITY_IAM
 ```
 
@@ -105,7 +185,7 @@ After deployment is complete you can run the following command to retrieve the A
 
 ```bash
 aws cloudformation describe-stacks \
-    --stack-name sam-app \
+    --stack-name pytorch-sam-app \
     --query 'Stacks[].Outputs[?OutputKey==`PyTorchApi`]' \
     --output table
 ``` 
@@ -117,13 +197,12 @@ To simplify troubleshooting, SAM CLI has a command called sam logs. sam logs let
 `NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
 
 ```bash
-sam logs -n PyTorchFunction --stack-name sam-app --tail
+sam logs -n PyTorchFunction --stack-name pytorch-sam-app --tail
 ```
 
 You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
 
 ## Testing
-
 
 Next, we install test dependencies and we run `pytest` against our `tests` folder to run our initial unit tests:
 
@@ -137,48 +216,83 @@ python -m pytest tests/ -v
 In order to delete our Serverless Application recently deployed you can use the following AWS CLI Command:
 
 ```bash
-aws cloudformation delete-stack --stack-name sam-app
+aws cloudformation delete-stack --stack-name pytorch-sam-app
 ```
 
-## Bringing to the next level
+## Advanced concetps
 
-Here are a few things you can try to get more acquainted with building serverless applications using SAM:
+Have shown how to create a SAM application to do PyTorch model inference. Now you will learn how to create your own Lambda Layer to package the PyTorch dependencies.
 
-### Learn how SAM Build can help you with dependencies
+### Create Lambda Layer for PyTorch packages
 
-* Uncomment lines on `app.py`
-* Build the project with ``sam build --use-container``
-* Invoke with ``sam local invoke PyTorchFunction --event event.json``
-* Update tests
+The project uses [Lambda layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html) for deploying the PyTorch libraries. **Lambda Layers** allow you to bundle dependencies without needing to include them in your application bundle.
 
-### Create an additional API resource
+The project defaults to using a public Lambda Layer ARN `arn:aws:lambda:eu-west-1:934676248949:layer:pytorchv1-py36:1` containing the PyTorch packages. It is publically accessible. To build and publish your own PyTorch layer follow the instuctions below.
 
-* Create a catch all resource (e.g. /hello/{proxy+}) and return the name requested through this new path
-* Update tests
+AWS Lambda has a limit of 250 MB for the deployment package size including lamba layers. PyTorch plus its dependencies is more than this so we need to implement a trick to get around this limit. We will create a zipfile called `.requirements.zip` with all the PyTorch and associated packages. We will then add this zipfile to the Lambda Layer zipfile along with a python script called `unzip_requirements.py`. The python script will extract the zipfile `.requirements.zip` to the `/tmp` when the Lambda execution context is created. 
 
-### Step-through debugging
-
-* **[Enable step-through debugging docs for supported runtimes]((https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-using-debugging.html))**
-
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
-
-# Appendix
-
-## Building the project
-
-[AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/lambda-python-how-to-create-deployment-package.html) with the application as well as its dependencies in  deployment package. When you make changes to your source code or dependency manifest,
-run the following command to build your project local testing and deployment:
+1. Goto the directory named `layer` and run the script named `create_layer_zipfile.sh`. This will launch the command `sam build --use-container` to download the packages defined in the `requirements.txt` file. The script will remove unncessary files and directories and then create the zipfile `.requirements.zip` then bundle this zipfile with the python script `unzip_requirements.py` to the zipfile `pytorch-1.0.1-lambda-layer.zip`.
 
 ```bash
-sam build
+cd layer
+./create_layer_zipfile.sh
 ```
 
-If your dependencies contain native modules that need to be compiled specifically for the operating system running on AWS Lambda, use this command to build inside a Lambda-like Docker container instead:
+1. Upload the Lambda Layer zipfile to one of your S3 buckets. Take note of the S3 URL as it will be used when creating the Lambda Layer.
+
 ```bash
-sam build --use-container
+aws s3 cp pytorch-1.0.1-lambda-layer.zip s3://REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME/lambda-layers/pytorch-1.0.1-lambda-layer.zip
 ```
 
-By default, this command writes built artifacts to `.aws-sam/build` folder.
+1. Now we can create the Lambda Layer version. Execute the following AWS CLI command:
+
+```bash
+aws lambda publish-layer-version \
+    --layer-name "pytorchv1-p36" \
+    --description "Lambda layer of PyTorch 1.0.1 zipped to be extracted with unzip_requirements file" \
+    --content "S3Bucket=REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME,S3Key=lambda-layers/lambda-layers/pytorch-1.0.1-lambda-layer.zip" \
+    --compatible-runtimes "python3.6" 
+```
+
+1. Take note of the value of the response parameter `LayerVersionArn`. 
+
+The following examples show how you can use your own Lambda Layer in both local testing and then deploying to AWS. They will overide the default Lambda Layer in the file `template.yaml`.
+
+**Invoking function locally overriding Lambda Layer default**
+
+```bash
+sam local invoke PyTorchFunction -n env.json -e event.json --parameter-overrides LambdaLayerArn=REPLACE_WITH_YOUR_LAMBDA_LAYER_ARN
+```
+
+**Invoking function through local API Gateway overriding Lambda Layer default**
+
+```bash
+sam local start-api -n env.json --parameter-overrides LambdaLayerArn=REPLACE_WITH_YOUR_LAMBDA_LAYER_ARN
+```
+
+**Deploying the Lambda function overriding Lambda Layer default**
+
+```bash
+sam deploy \
+    --template-file packaged.yaml \
+    --stack-name pytorch-sam-app \
+    --capabilities CAPABILITY_IAM \
+    --parameter-overrides LambdaLayerArn=REPLACE_WITH_YOUR_LAMBDA_LAYER_ARN
+
+```
+
+### Lambda code format
+
+At the beginning of the file `pytorch/app.py` you need to include the following code that will unzip the package file containing the python libs. It will extract the package zip file named `.requirements.zip` to the `/tmp` to get around the unzipped Lambda deployment package limit of 250 MB.
+
+```python
+try:
+    import unzip_requirements
+except ImportError:
+    pass
+```
+
+After these lines you can import all the python libraries you need to.
 
 ## SAM and AWS CLI commands
 
@@ -205,16 +319,16 @@ sam package \
 # Deploy SAM template as a CloudFormation stack
 sam deploy \
     --template-file packaged.yaml \
-    --stack-name sam-app \
+    --stack-name pytorch-sam-app \
     --capabilities CAPABILITY_IAM
 
 # Describe Output section of CloudFormation stack previously created
 aws cloudformation describe-stacks \
-    --stack-name sam-app \
+    --stack-name pytorch-sam-app \
     --query 'Stacks[].Outputs[?OutputKey==`PyTorchApi`]' \
     --output table
 
 # Tail Lambda function Logs using Logical name defined in SAM Template
-sam logs -n PyTorchFunction --stack-name sam-app --tail
+sam logs -n PyTorchFunction --stack-name pytorch-sam-app --tail
 ```
 

@@ -35,8 +35,8 @@ MODEL_BUCKET=os.environ.get('MODEL_BUCKET')
 logger.info(f'Model Bucket is {MODEL_BUCKET}')
 
 # get bucket prefix from ENV variable
-MODEL_PREFIX=os.environ.get('MODEL_PREFIX')
-logger.info(f'Model Prefix is {MODEL_PREFIX}')
+MODEL_KEY=os.environ.get('MODEL_KEY')
+logger.info(f'Model Prefix is {MODEL_KEY}')
 
 # processing pipeline to resize, normalize and create tensor object
 preprocess = transforms.Compose([
@@ -62,13 +62,13 @@ def load_model():
     logger.info('Loading model from S3')
     model_dir = '/tmp/model'
     local_model=f'{model_dir}/model.tar.gz'
-    # download the file from S3 and extract
+    # download the model tar.gz file from S3 and extract
     logger.info(f'Downloading model from S3 to {local_model}')
     if not os.path.exists(model_dir):
         os.mkdir(model_dir)
     s3.download_file(
-                    MODEL_BUCKET, f'{MODEL_PREFIX}/model.tar.gz', local_model)
-    logger.info('Opening model tarfile')
+                    MODEL_BUCKET, MODEL_KEY, local_model)
+    logger.info('Extracting model tarfile')
     tarfile.open(local_model).extractall(model_dir)
     os.remove(local_model)
     logger.info('Getting classes from file')

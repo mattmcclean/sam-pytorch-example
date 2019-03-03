@@ -1,9 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-    sam-app
-
-    Sample SAM Template for sam-app
+Description: Creates the Lambda function and API for the PyTorch inference application.
 
 Parameters: 
   BucketName: 
@@ -16,38 +13,39 @@ Parameters:
     Description: Enter the S3 bucket prefix of your PyTorch model artefacts.
   LambdaLayerArn:
     Type: String
-    Default: somearn
-    Description: Enter the ARN of the AWS Lambda Layer for the PyTorch packages.
+    Default: "arn:aws:lambda:eu-west-1:934676248949:layer:pytorchv1-py36:1"
+    Description: Enter the PyTorch Lambda Layer ARN. Defaults to a public one.
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+
 Globals:
     Function:
         Timeout: 30
 
 Resources:
 
-    PyTorchFunction:
-        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-        Properties:
-            CodeUri: pytorch/
-            Handler: app.lambda_handler
-            Runtime: python3.6
-            MemorySize: 1024
-            Environment:
-                Variables:
-                    MODEL_BUCKET: !Ref BucketName
-                    MODEL_PREFIX: !Ref BucketPrefix
-            Policies:
-                - S3ReadPolicy:
-                    BucketName: "sagemaker-eu-west-1-934676248949"
-            Layers:
-                - !Ref LambdaLayerArn
-            Events:
-                PyTorch:
-                    Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-                    Properties:
-                        Path: /invocations
-                        Method: post
+  PyTorchFunction:
+      Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+      Properties:
+          CodeUri: pytorch/
+          Handler: app.lambda_handler
+          Runtime: python3.6
+          MemorySize: 1024
+          Environment:
+            Variables:
+              MODEL_BUCKET: !Ref BucketName
+              MODEL_KEY: !Ref BucketPrefix
+          Policies:
+            - S3ReadPolicy:
+                BucketName: !Ref BucketName
+          Layers:
+            - !Ref LambdaLayerArn 
+          Events:
+              PyTorch:
+                  Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+                  Properties:
+                      Path: /invocations
+                      Method: post
                         
 Outputs:
 
