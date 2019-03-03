@@ -190,13 +190,14 @@ sam package \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 ```
 
-Next, the following command will create a Cloudformation Stack and deploy your SAM resources.
+Next, the following command will create a Cloudformation Stack and deploy your SAM resources. You will need to override the default parameters for the bucket name and key. This is done by passing the ``--parameter-overrides` option to the `deploy` command.
 
 ```bash
 sam deploy \
     --template-file packaged.yaml \
     --stack-name pytorch-sam-app \
-    --capabilities CAPABILITY_IAM
+    --capabilities CAPABILITY_IAM \
+    --parameter-overrides BucketName=REPLACE_THIS_WITH_YOUR_MODEL_S3_BUCKET_NAME ObjectKey=REPLACE_THIS_WITH_YOUR_MODEL_S3_OBJECT_KEY
 ```
 
 > **See [Serverless Application Model (SAM) HOWTO Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html) for more details in how to get started.**
@@ -301,8 +302,7 @@ sam deploy \
     --template-file packaged.yaml \
     --stack-name pytorch-sam-app \
     --capabilities CAPABILITY_IAM \
-    --parameter-overrides LambdaLayerArn=REPLACE_WITH_YOUR_LAMBDA_LAYER_ARN
-
+    --parameter-overrides LambdaLayerArn=REPLACE_WITH_YOUR_LAMBDA_LAYER_ARN BucketName=REPLACE_THIS_WITH_YOUR_MODEL_S3_BUCKET_NAME ObjectKey=REPLACE_THIS_WITH_YOUR_MODEL_S3_OBJECT_KEY
 ```
 
 ### Lambda code format
@@ -344,7 +344,8 @@ sam package \
 sam deploy \
     --template-file packaged.yaml \
     --stack-name pytorch-sam-app \
-    --capabilities CAPABILITY_IAM
+    --capabilities CAPABILITY_IAM \
+    --parameter-overrides BucketName=REPLACE_THIS_WITH_YOUR_MODEL_S3_BUCKET_NAME ObjectKey=REPLACE_THIS_WITH_YOUR_MODEL_S3_OBJECT_KEY    
 
 # Describe Output section of CloudFormation stack previously created
 aws cloudformation describe-stacks \
