@@ -4,30 +4,6 @@ This is a sample [SAM](https://docs.aws.amazon.com/lambda/latest/dg/deploying-la
 
 It deploys a computer vision classifier by receving a URL of an image and returns the predicted class with a confidence value.
 
-**Lambda Request Body format**
-
-The Lambda function expects a JSON body request object containing the URL of an image to classify.
-
-Example:
-```json
-{
-    "url": "REPLACE_THIS_WITH_AN_IMAGE_URL"
-}
-```
-**Lambda Response format**
-
-The Lambda function will return a JSON object containing the predicted class and confidence score.
-
-Example:
-```json
-{
-    "statusCode": 200,
-    "body": {
-        "class": "english_cocker_spaniel",
-        "confidence": 0.99
-    }
-}
-```
 The file structure of this application is the following:
 
 ```bash
@@ -71,7 +47,7 @@ aws s3 mb s3://BUCKET_NAME
 
 The SAM application expects a PyTorch model in [TorchScript](https://pytorch.org/docs/stable/jit.html?highlight=jit#module-torch.jit) format to be saved to S3 along with a classes text file with the output class names.
 
-An example piece of code to prepare a trained PyTorch model is shown below:
+An example of packaging and uploading a trained resnet PyTorch model to S3 is shown below:
 
 ```python
 # save the PyTorch model in TorchScript format
@@ -95,7 +71,34 @@ s3.meta.client.upload_file('model.tar.gz',
     'REPLACE_THIS_WITH_YOUR_MODEL_S3_OBJECT_KEY')
 ```
 
-### Local development
+## Lambda function request/response API
+
+**Lambda Request Body format**
+
+The Lambda function expects a JSON body request object containing the URL of an image to classify.
+
+Example:
+```json
+{
+    "url": "REPLACE_THIS_WITH_AN_IMAGE_URL"
+}
+```
+**Lambda Response format**
+
+The Lambda function will return a JSON object containing the predicted class and confidence score.
+
+Example:
+```json
+{
+    "statusCode": 200,
+    "body": {
+        "class": "english_cocker_spaniel",
+        "confidence": 0.99
+    }
+}
+```
+
+## Local development
 
 **Creating test Lambda Environment Variables**
 
@@ -219,7 +222,7 @@ In order to delete our Serverless Application recently deployed you can use the 
 aws cloudformation delete-stack --stack-name pytorch-sam-app
 ```
 
-## Advanced concetps
+## Advanced concepts
 
 Have shown how to create a SAM application to do PyTorch model inference. Now you will learn how to create your own Lambda Layer to package the PyTorch dependencies.
 
