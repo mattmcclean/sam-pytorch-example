@@ -49,6 +49,7 @@ The file structure of this application is the following:
 * [AWS CLI](https://aws.amazon.com/cli/) already configured with Administrator permission
 * [Python 3 installed](https://www.python.org/downloads/)
 * [Docker installed](https://www.docker.com/community-edition)
+* [AWS SAM CLI](https://aws.amazon.com/serverless/sam/) already installed. See guide for instructions.
 
 ## Setup process
 
@@ -190,7 +191,7 @@ sam package \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 ```
 
-Next, the following command will create a Cloudformation Stack and deploy your SAM resources. You will need to override the default parameters for the bucket name and key. This is done by passing the ``--parameter-overrides` option to the `deploy` command.
+Next, the following command will create a Cloudformation Stack and deploy your SAM resources. You will need to override the default parameters for the bucket name and key. This is done by passing the `--parameter-overrides` option to the `deploy` command.
 
 ```bash
 sam deploy \

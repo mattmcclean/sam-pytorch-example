@@ -13,8 +13,8 @@ Parameters:
     Description: Enter the S3 object key path of your PyTorch model artefacts.
   LambdaLayerArn:
     Type: String
-    Default: "arn:aws:lambda:eu-west-1:934676248949:layer:pytorchv1-py36:1"
-    Description: Enter the PyTorch Lambda Layer ARN. Defaults to a public one.
+    Default: "arn:aws:lambda:us-east-1:934676248949:layer:pytorchv1-py36:1"
+    Description: Enter the PyTorch Lambda Layer ARN. Defaults to a public one in the "us-east-1" region.
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 
