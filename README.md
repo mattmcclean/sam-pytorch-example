@@ -249,13 +249,13 @@ Have shown how to create a SAM application to do PyTorch model inference. Now yo
 
 The project uses [Lambda layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html) for deploying the PyTorch libraries. **Lambda Layers** allow you to bundle dependencies without needing to include them in your application bundle.
 
-The project defaults to using a public Lambda Layer ARN `arn:aws:lambda:eu-west-1:934676248949:layer:pytorchv1-py36:1` containing the PyTorch packages. It is publically accessible. To build and publish your own PyTorch layer follow the instuctions below.
+The project defaults to using a public Lambda Layer ARN `arn:aws:lambda:eu-west-1:934676248949:layer:pytorchv1-py36:2` w containing the PyTorch v1.1.0 packages. It is publically accessible. To build and publish your own PyTorch layer follow the instuctions below.
 
 AWS Lambda has a limit of 250 MB for the deployment package size including lamba layers. PyTorch plus its dependencies is more than this so we need to implement a trick to get around this limit. We will create a zipfile called `.requirements.zip` with all the PyTorch and associated packages. We will then add this zipfile to the Lambda Layer zipfile along with a python script called `unzip_requirements.py`. The python script will extract the zipfile `.requirements.zip` to the `/tmp` when the Lambda execution context is created. 
 
 #### Layer creation steps
 
-Goto the directory named `layer` and run the script named `create_layer_zipfile.sh`. This will launch the command `sam build --use-container` to download the packages defined in the `requirements.txt` file. The script will remove unncessary files and directories and then create the zipfile `.requirements.zip` then bundle this zipfile with the python script `unzip_requirements.py` to the zipfile `pytorch-1.0.1-lambda-layer.zip`.
+Goto the directory named `layer` and run the script named `create_layer_zipfile.sh`. This will launch the command `sam build --use-container` to download the packages defined in the `requirements.txt` file. The script will remove unncessary files and directories and then create the zipfile `.requirements.zip` then bundle this zipfile with the python script `unzip_requirements.py` to the zipfile `pytorch-1.1.0-lambda-layer.zip`.
 
 ```bash
 cd layer
@@ -264,15 +264,15 @@ cd layer
 Upload the Lambda Layer zipfile to one of your S3 buckets. Take note of the S3 URL as it will be used when creating the Lambda Layer.
 
 ```bash
-aws s3 cp pytorch-1.0.1-lambda-layer.zip s3://REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME/lambda-layers/pytorch-1.0.1-lambda-layer.zip
+aws s3 cp pytorch-1.1.0-lambda-layer.zip s3://REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME/lambda-layers/pytorch-1.1.0-lambda-layer.zip
 ```
 Now we can create the Lambda Layer version. Execute the following AWS CLI command:
 
 ```bash
 aws lambda publish-layer-version \
     --layer-name "pytorchv1-p36" \
-    --description "Lambda layer of PyTorch 1.0.1 zipped to be extracted with unzip_requirements file" \
-    --content "S3Bucket=REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME,S3Key=lambda-layers/lambda-layers/pytorch-1.0.1-lambda-layer.zip" \
+    --description "Lambda layer of PyTorch 1.1.0 zipped to be extracted with unzip_requirements file" \
+    --content "S3Bucket=REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME,S3Key=lambda-layers/lambda-layers/pytorch-1.1.0-lambda-layer.zip" \
     --compatible-runtimes "python3.6" 
 ```
 
