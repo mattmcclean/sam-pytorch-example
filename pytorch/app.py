@@ -60,26 +60,21 @@ def load_model():
     """      
     global classes
     logger.info('Loading model from S3')
-    model_dir = '/tmp/model'
-    local_model=f'{model_dir}/model.tar.gz'
-    # download the model tar.gz file from S3 and extract
-    logger.info(f'Downloading model from S3 to {local_model}')
-    if not os.path.exists(model_dir):
-        os.mkdir(model_dir)
-    s3.download_file(
-                    MODEL_BUCKET, MODEL_KEY, local_model)
-    logger.info('Extracting model tarfile')
-    tarfile.open(local_model).extractall(model_dir)
-    os.remove(local_model)
-    logger.info('Getting classes from file')
-    # get the classes from saved 'classes.txt' file
-    with open(f'{model_dir}/classes.txt', 'r') as f:
-        classes = f.read().splitlines()
-    logger.info(f'Classes are {classes}')    
-    model_path = glob.glob(f'{model_dir}/*_jit.pth')[0]
-    logger.info(f'Model path is {model_path}')
-    model = torch.jit.load(model_path, map_location=torch.device('cpu'))
-    return model.eval()
+    obj = s3.get_object(Bucket=MODEL_BUCKET, Key=MODEL_KEY)
+    bytestream = io.BytesIO(obj['Body'].read())
+    tar = tarfile.open(fileobj=bytestream, mode="r:gz")
+    for member in tar.getmembers():
+        if member.name.endswith(".txt"):
+            print("Classes file is :", member.name)
+            f=tar.extractfile(member)
+            classes = f.read().splitlines()
+            print(classes)
+        if member.name.endswith(".pth"):
+            print("Model file is :", member.name)
+            f=tar.extractfile(member)
+            print("Loading PyTorch model")
+            model = torch.jit.load(io.BytesIO(f.read()), map_location=torch.device('cpu')).eval()
+    return model
 
 # load the model when lambda execution context is created
 model = load_model()

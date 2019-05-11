@@ -2,7 +2,8 @@
 
 set -e
 
-LAYER_ZIP_NAME=${1:-pytorch-1.0.1-lambda-layer.zip}
+PYTORCH_VERSION=${1:-"1.1.0"}
+LAYER_ZIP_NAME="pytorch-${PYTORCH_VERSION}-lambda-layer.zip"
 
 if [[ -f "${LAYER_ZIP_NAME}" ]]; then
     echo "Deleting zipfiles"
